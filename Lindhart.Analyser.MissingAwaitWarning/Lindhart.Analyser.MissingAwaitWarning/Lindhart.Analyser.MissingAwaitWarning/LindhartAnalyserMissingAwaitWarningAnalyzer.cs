@@ -12,19 +12,16 @@ namespace Lindhart.Analyser.MissingAwaitWarning
     [DiagnosticAnalyzer( LanguageNames.CSharp )]
     public class LindhartAnalyserMissingAwaitWarningAnalyzer : DiagnosticAnalyzer
     {
-        public const string StandardRuleId = "LindhartAnalyserMissingAwaitWarning";
         public const string StrictRuleId = "LindhartAnalyserMissingAwaitWarningStrict";
 
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
         // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
-        private static readonly LocalizableString StandardTitle = new LocalizableResourceString( nameof( Resources.StandardRuleTitle ), Resources.ResourceManager, typeof( Resources ) );
         private static readonly LocalizableString StrictTitle = new LocalizableResourceString( nameof( Resources.StandardRuleTitle ), Resources.ResourceManager, typeof( Resources ) );
         private static readonly LocalizableString MessageFormat = new LocalizableResourceString( nameof( Resources.AnalyzerMessageFormat ), Resources.ResourceManager, typeof( Resources ) );
         private static readonly LocalizableString Description = new LocalizableResourceString( nameof( Resources.AnalyzerDescription ), Resources.ResourceManager, typeof( Resources ) );
         private const string Category = "UnintentionalUsage";
 
-        private static readonly DiagnosticDescriptor StandardRule = new DiagnosticDescriptor( StandardRuleId, StandardTitle, MessageFormat, Category, DiagnosticSeverity.Warning, true, Description );
-        private static readonly DiagnosticDescriptor StrictRule = new DiagnosticDescriptor( StrictRuleId, StrictTitle, MessageFormat, Category, DiagnosticSeverity.Hidden, false, Description );
+        private static readonly DiagnosticDescriptor StrictRule = new DiagnosticDescriptor( StrictRuleId, StrictTitle, MessageFormat, Category, DiagnosticSeverity.Error, true, Description );
 
         private static readonly string[] AwaitableTypes = new[]
         {
@@ -38,12 +35,12 @@ namespace Lindhart.Analyser.MissingAwaitWarning
             typeof(ConfiguredValueTaskAwaitable<>).FullName
         };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( StandardRule, StrictRule );
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( StrictRule );
 
         public override void Initialize( AnalysisContext context )
         {
             context.RegisterSyntaxNodeAction( AnalyseSymbolNode, SyntaxKind.InvocationExpression );
-        }
+         }
 
         private void AnalyseSymbolNode( SyntaxNodeAnalysisContext syntaxNodeAnalysisContext )
         {
@@ -65,33 +62,66 @@ namespace Lindhart.Analyser.MissingAwaitWarning
         {
             switch ( node.Parent )
             {
-                // Checks if a task is not awaited when the task itself is not assigned to a variable.
-                case ExpressionStatementSyntax _:
-                    // Check the method return type against all the known awaitable types.
-                    if ( EqualsType( methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes ) )
-                    {
-                        var diagnostic = Diagnostic.Create( StandardRule, node.GetLocation(), methodSymbol.ToDisplayString() );
+                //// Checks if a task is not awaited when the task itself is not assigned to a variable.
+                //case ExpressionStatementSyntax _:
+                //    // Check the method return type against all the known awaitable types.
+                //    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                //    {
+                //        var diagnostic = Diagnostic.Create(StandardRule, node.GetLocation(), methodSymbol.ToDisplayString());
 
-                        syntaxNodeAnalysisContext.ReportDiagnostic( diagnostic );
-                    }
+                //        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                //    }
 
-                    break;
+                //    break;
 
-                // Checks if a task is not awaited in lambdas.
-                // The following two lines have been commented out, since they gave problems
-                // case AnonymousFunctionExpressionSyntax _:
-                // case ArrowExpressionClauseSyntax _:
-                // Checks if a task is not awaited when the task itself is assigned to a variable.
-                case EqualsValueClauseSyntax _:
+                //// Checks if a task is not awaited in lambdas.
+                //// The following two lines have been commented out, since they gave problems
+                //// case AnonymousFunctionExpressionSyntax _:
+                //// case ArrowExpressionClauseSyntax _:
+                //// Checks if a task is not awaited when the task itself is assigned to a variable.
+                //case EqualsValueClauseSyntax _:
 
-                    if ( EqualsType( methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes ) )
-                    {
-                        var diagnostic = Diagnostic.Create( StrictRule, node.GetLocation(), methodSymbol.ToDisplayString() );
+                //    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                //    {
+                //        var diagnostic = Diagnostic.Create(StrictRule, node.GetLocation(), methodSymbol.ToDisplayString());
 
-                        syntaxNodeAnalysisContext.ReportDiagnostic( diagnostic );
-                    }
+                //        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                //    }
 
-                    break;
+                //    break;
+
+                //case AssignmentExpressionSyntax _:
+
+                //    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                //    {
+                //        var diagnostic = Diagnostic.Create(StrictRule, node.GetLocation(), methodSymbol.ToDisplayString());
+
+                //        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                //    }
+
+                //    break;
+
+                //case ReturnStatementSyntax _:
+
+                //    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                //    {
+                //        var diagnostic = Diagnostic.Create(StrictRule, node.GetLocation(), methodSymbol.ToDisplayString());
+
+                //        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                //    }
+
+                //    break;
+
+                //case ParameterListSyntax _:
+
+                //    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                //    {
+                //        var diagnostic = Diagnostic.Create(StrictRule, node.GetLocation(), methodSymbol.ToDisplayString());
+
+                //        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                //    }
+
+                //    break;
 
                 // If the conditional expression, we check recursively
                 case ConditionalAccessExpressionSyntax _:
@@ -102,6 +132,16 @@ namespace Lindhart.Analyser.MissingAwaitWarning
 
                 // Awaited expressions don't interest us
                 case AwaitExpressionSyntax _:
+
+                    break;
+
+                default:
+                    if (EqualsType(methodSymbol.ReturnType, syntaxNodeAnalysisContext.SemanticModel, AwaitableTypes))
+                    {
+                        var diagnostic = Diagnostic.Create(StrictRule, node.GetLocation(), methodSymbol.ToDisplayString());
+
+                        syntaxNodeAnalysisContext.ReportDiagnostic(diagnostic);
+                    }
 
                     break;
             }
